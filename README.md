@@ -4,8 +4,6 @@
 
 This project is a Retrieval-Augmented Generation (RAG) pipeline designed to ingest, parse, and allow querying of complex IIT Bombay documents (Fee structures, Curriculum, Rules, Hostel). 
 
-It specifically addresses the challenge of **parsing complex tables** in PDFs by using advanced Markdown extraction.
-
 ---
 
 ## 🚀 Current Workflow
