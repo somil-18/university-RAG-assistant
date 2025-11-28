@@ -22,7 +22,7 @@ Right now, the pipeline focuses on **High-Fidelity Data Ingestion**:
 
 ## 🛠️ Tech Stack
 
-* **Language:** Python 3.10+
+* **Language:** Python 3.11
 * **Parsing:** LlamaParse (LlamaIndex)
 * **Orchestration:** LangChain
 * **Utilities:** `python-dotenv`, `json`
