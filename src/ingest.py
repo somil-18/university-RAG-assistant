@@ -10,6 +10,7 @@ load_dotenv()
 
 # path of the PDFs
 path = glob.glob('data/*.pdf')
+json_docs = []
 
 # llama parser to parse the PDFs
 parser = LlamaParse(
@@ -18,25 +19,36 @@ parser = LlamaParse(
     verbose=True
 )
 
-# parse the documents
-print("Parsing documents...")
-docs = parser.load_data(path)
+'''
+- processing files one by one because
+- when I tried loading all files together earlier, the metadata came out empty  
+- so manually giving the file name in metadata
+'''
+for file_path in path:
+    file_name = os.path.basename(file_path) # for e.g. get "rules.pdf"
+    print(f"Parsing: {file_name}...")
+    
+    # we will parse just this one file
+    single_file_docs = parser.load_data(file_path)
+    
+    for doc in single_file_docs:
+        if not doc.metadata:
+            doc.metadata = {}
+            
+        doc.metadata["source"] = file_name # here metadata --> source --> file name
+        
+        json_docs.append({
+            "text": doc.text,
+            "metadata": doc.metadata, 
+            "id_": doc.id_
+        })
 
-# save the data
+# define the output filename
 output_filename = "parsed_data.json"
-
-# we need to convert the LlamaIndex objects into standard dictionaries to save them
-json_docs = []
-for doc in docs:
-    json_docs.append({
-        "text": doc.text,
-        "metadata": doc.metadata,
-        "id_": doc.id_
-    })
 
 # write to a JSON file
 with open(output_filename, 'w', encoding='utf-8') as f:
     json.dump(json_docs, f, indent=4)
 
-print(f"Successfully saved {len(docs)} documents to {output_filename}")
+print(f"Successfully saved {len(json_docs)} documents to {output_filename}")
 
