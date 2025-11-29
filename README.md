@@ -4,8 +4,6 @@
 
 This project is a Retrieval-Augmented Generation (RAG) pipeline designed to ingest, parse, and allow querying of complex IIT Bombay documents (Fee structures, Curriculum, Rules, Hostel). 
 
-It specifically addresses the challenge of **parsing and retrieving complex tables** in PDFs by using advanced Markdown extraction and structure-aware chunking.
-
 ---
 
 ## 🚀 Current Workflow
@@ -55,3 +53,12 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 ├── requirements.txt        # Dependencies
 ├── .env                    # API Keys (Not committed)
 └── README.md
+```
+
+---
+## ⚙️ Setup & Usage
+
+### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
