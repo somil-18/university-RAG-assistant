@@ -43,15 +43,15 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 
 ```bash
 .
-├── data/                   # Raw PDF files
+├── data/                      # Raw PDF files
 ├── src/
-│   ├── ingest.py           # Step 1: Parse PDFs -> JSON
-│   ├── chunk.py         # Step 2: JSON -> Document Objects (Double-Pass Logic)
-│   └── embedding_store.py            # Step 3: Embed Chunks -> ChromaDB
-├── vectorstore/            # Created automatically (The Local Database)
-├── parsed_data.json        # Cached output (Markdown text + Metadata)
-├── requirements.txt        # Dependencies
-├── .env                    # API Keys (Not committed)
+│   ├── ingest.py              # Step 1: Parse PDFs -> JSON
+│   ├── chunk.py               # Step 2: JSON -> Document Objects (Double-Pass Logic)
+│   └── embedding_store.py     # Step 3: Embed Chunks -> ChromaDB
+├── vectorstore/               # Created automatically (The Local Database)
+├── parsed_data.json           # Cached output (Markdown text + Metadata)
+├── requirements.txt           # Dependencies
+├── .env                       # API Keys (Not committed)
 └── README.md
 ```
 
