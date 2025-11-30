@@ -14,3 +14,6 @@ python-dotenv
 
 pypdf
 llama-parse
+rank_bm25
+
+streamlit
