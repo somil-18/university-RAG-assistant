@@ -1,14 +1,14 @@
 # 🎓 University RAG: Conversational AI for University Documents
 
-> **Status:** 🚧 Work in Progress (Active Development) 🚧
+> **Status:** 🚧 Work in Progress (Active Development - RAG Engine Functional) 🚧
 
-This project is a Retrieval-Augmented Generation (RAG) pipeline designed to ingest, parse, and allow querying of complex IIT Bombay documents (Fee structures, Curriculum, Rules, Hostel). 
+This project is a Retrieval-Augmented Generation (RAG) pipeline designed to ingest, parse, and allow querying of complex IIT Bombay documents (Fee structures, Curriculum, Rules, Hostel).
 
 ---
 
 ## 🚀 Current Workflow
 
-The pipeline has moved beyond simple ingestion. It now includes a robust **"Double-Pass" Chunking Strategy** and **Vector Storage**.
+The pipeline is now end-to-end functional, from raw PDF ingestion to AI-generated answers.
 
 ### Phase 1: High-Fidelity Ingestion
 1.  **Data Collection:** PDFs (e.g., Fee Circulars, Academic Rules) are collected in a local `data/` directory.
@@ -26,6 +26,16 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
     * **Embedding Model:** `BAAI/bge-small-en-v1.5` (HuggingFace). Selected for its 512-token window which fits our larger chunks better than standard MiniLM models.
     * **Database:** **ChromaDB** (Local). Stores the vectors on disk for fast retrieval.
 
+### Phase 3: Retrieval & Generation (New)
+6.  **Context Retrieval:**
+    * The system loads the persisted ChromaDB.
+    * Performs a similarity search to fetch the **Top-5** most relevant document chunks based on the user's query.
+7.  **LLM Generation (`rag.py`):**
+    * Constructs a prompt with **Strict Fidelity** rules (e.g., "Do not make up numbers").
+    * Injects the retrieved context into the prompt.
+    * **Persona:** Acts as an "expert academic assistant for IIT Bombay."
+    * **Disclaimer Logic:** Automatically appends: *"always mention at last for more info visit official site"* to ensures users verify critical data.
+
 ---
 
 ## 🛠️ Tech Stack
@@ -35,6 +45,7 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 * **Orchestration:** LangChain
 * **Embeddings:** HuggingFace (`BAAI/bge-small-en-v1.5`)
 * **Vector DB:** ChromaDB
+* **LLM Integration:** LangChain Chat Models
 * **Utilities:** `python-dotenv`, `json`
 
 ---
@@ -43,19 +54,21 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 
 ```bash
 .
-├── data/                      # Raw PDF files
+├── data/                       # Raw PDF files
 ├── src/
-│   ├── ingest.py              # Step 1: Parse PDFs -> JSON
-│   ├── chunk.py               # Step 2: JSON -> Document Objects (Double-Pass Logic)
-│   └── embedding_store.py     # Step 3: Embed Chunks -> ChromaDB
-├── vectorstore/               # Created automatically (The Local Database)
-├── parsed_data.json           # Cached output (Markdown text + Metadata)
-├── requirements.txt           # Dependencies
-├── .env                       # API Keys (Not committed)
+│   ├── ingest.py               # Step 1: Parse PDFs -> JSON
+│   ├── chunk.py                # Step 2: JSON -> Document Objects (Double-Pass Logic)
+│   ├── embedding_store.py      # Step 3: Embed Chunks -> ChromaDB
+│   └── rag.py                  # Step 4: Query -> Retrieve -> Generate Answer
+├── vectorstore/                # Created automatically (The Local Database)
+├── parsed_data.json            # Cached output (Markdown text + Metadata)
+├── requirements.txt            # Dependencies
+├── .env                        # API Keys (Not committed)
 └── README.md
 ```
 
 ---
+
 ## ⚙️ Setup & Usage
 
 ### 1. Install Dependencies
