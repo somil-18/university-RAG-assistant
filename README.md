@@ -28,13 +28,11 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 
 ### Phase 3: Hybrid Retrieval & Generation
 6.  **Advanced Retrieval Strategy:** We do not rely on a single search method. We use an **Ensemble** approach:
-    * **Multi-Query:** The LLM generates 3-5 variations of the user's question to capture different phrasings.
-    * **BM25 (Sparse):** Keyword-based search. Essential for finding exact matches like "Fee Circular 2024" or course codes.
-    * **Chroma (Dense):** Vector-based search. Captures semantic meaning (e.g., "how much does a room cost" matches "hostel rent").
+    * **Multi-Query Retriever:** Uses an LLM to generate variations of the user's question (handling ambiguity/slang).
+    * **BM25 Retriever:** Uses keyword matching to find exact terms (handling course codes and specific fee amounts).
     * *Why?* Vector search often misses exact numbers, while keyword search misses context. Combining them (Hybrid Search) gives the highest accuracy.
-7.  **Grounded Generation:**
-    * **Strict Fidelity:** The System Prompt enforces that the AI must only use provided context.
-    * **Mandatory Disclaimer:** The pipeline post-processes the answer to strictly append: *"always mention at last for more info visit official site"*.
+7.  **Generation:**
+    * The retrieved context is passed to Qwen 2.5 7B to generate a precise answer using Chain-of-Thought prompting.
 
 ---
 
@@ -45,6 +43,7 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 * **Orchestration:** LangChain
 * **Retrievers:** `MultiQueryRetriever`, `BM25Retriever`, `EnsembleRetriever`
 * **Embeddings:** HuggingFace (`BAAI/bge-small-en-v1.5`)
+* **LLM:** HuggingFace (`Qwen/Qwen2.5-7B-Instruct`)
 * **Vector DB:** ChromaDB
 * **Utilities:** `python-dotenv`, `rank_bm25`
 
@@ -75,3 +74,18 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 ```bash
 pip install -r requirements.txt
 ```
+
+### 2. Ingest & Embed (one time setup)
+# Run these scripts to parse the PDFs and build the vector database.
+```bash
+python src/ingest.py
+python src/chunk.py
+python src/embedding_store.py
+```
+
+### 3. Run the RAG pipeline
+# Ask questions directly in the terminal using the new retrieval engine.
+```bash
+python src/rag.py
+```
+---
