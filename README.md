@@ -1,6 +1,6 @@
 # 🎓 University RAG: Conversational AI for University Documents
 
-> **Status:** 🚧 Work in Progress (Active Development - RAG Engine Functional) 🚧
+> **Status:** 🚧 Work in Progress (Active Development) 🚧
 
 This project is a Retrieval-Augmented Generation (RAG) pipeline designed to ingest, parse, and allow querying of complex IIT Bombay documents (Fee structures, Curriculum, Rules, Hostel).
 
@@ -8,7 +8,7 @@ This project is a Retrieval-Augmented Generation (RAG) pipeline designed to inge
 
 ## 🚀 Current Workflow
 
-The pipeline has moved beyond simple ingestion. It now utilizes a **Hybrid Search** strategy to ensure high-recall retrieval.
+The pipeline has moved beyond simple ingestion. It now includes a robust **"Double-Pass" Chunking Strategy**, **Vector Storage**, and a **Hybrid Retrieval Engine**.
 
 ### Phase 1: High-Fidelity Ingestion
 1.  **Data Collection:** PDFs (e.g., Fee Circulars, Academic Rules) are collected in a local `data/` directory.
@@ -26,18 +26,15 @@ The pipeline has moved beyond simple ingestion. It now utilizes a **Hybrid Searc
     * **Embedding Model:** `BAAI/bge-small-en-v1.5` (HuggingFace). Selected for its 512-token window which fits our larger chunks better than standard MiniLM models.
     * **Database:** **ChromaDB** (Local). Stores the vectors on disk for fast retrieval.
 
-### Phase 3: Advanced Retrieval & Hybrid Search (New)
-6.  **Multi-Query Expansion:**
-    * The system uses an LLM to generate **3-5 variations** of the user's original question from different perspectives.
-    * *Why?* User queries are often vague. By generating variations, we increase the "blast radius" of the search to catch relevant documents that might use different terminology.
-7.  **Hybrid Retrieval (Ensemble):**
-    * We combine two distinct retrieval methods using an **EnsembleRetriever**:
-        * **Dense Retrieval (ChromaDB):** Finds content based on semantic meaning.
-        * **Sparse Retrieval (BM25):** Finds content based on exact keyword matching (crucial for specific course codes or numbers).
-    * *Benefit:* This "Best of Both Worlds" approach ensures we don't miss documents that contain the exact answer but lack semantic similarity.
-8.  **Strict Generation:**
-    * The LLM answers using *only* the retrieved context.
-    * **Mandatory Disclaimer:** The system is hardcoded to append: *"always mention at last for more info visit official site"* to every response.
+### Phase 3: Hybrid Retrieval & Generation
+6.  **Advanced Retrieval Strategy:** We do not rely on a single search method. We use an **Ensemble** approach:
+    * **Multi-Query:** The LLM generates 3-5 variations of the user's question to capture different phrasings.
+    * **BM25 (Sparse):** Keyword-based search. Essential for finding exact matches like "Fee Circular 2024" or course codes.
+    * **Chroma (Dense):** Vector-based search. Captures semantic meaning (e.g., "how much does a room cost" matches "hostel rent").
+    * *Why?* Vector search often misses exact numbers, while keyword search misses context. Combining them (Hybrid Search) gives the highest accuracy.
+7.  **Grounded Generation:**
+    * **Strict Fidelity:** The System Prompt enforces that the AI must only use provided context.
+    * **Mandatory Disclaimer:** The pipeline post-processes the answer to strictly append: *"always mention at last for more info visit official site"*.
 
 ---
 
@@ -62,7 +59,7 @@ The pipeline has moved beyond simple ingestion. It now utilizes a **Hybrid Searc
 │   ├── ingest.py               # Step 1: Parse PDFs -> JSON
 │   ├── chunk.py                # Step 2: JSON -> Document Objects (Double-Pass Logic)
 │   ├── embedding_store.py      # Step 3: Embed Chunks -> ChromaDB
-│   └── rag.py                  # Step 4: Hybrid Retrieval (BM25 + MultiQuery) -> Answer
+│   └── rag.py                  # Step 4: Hybrid Retrieval -> Answer Generation
 ├── vectorstore/                # Created automatically (The Local Database)
 ├── parsed_data.json            # Cached output (Markdown text + Metadata)
 ├── requirements.txt            # Dependencies
