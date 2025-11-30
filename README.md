@@ -26,13 +26,17 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
     * **Embedding Model:** `BAAI/bge-small-en-v1.5` (HuggingFace). Selected for its 512-token window which fits our larger chunks better than standard MiniLM models.
     * **Database:** **ChromaDB** (Local). Stores the vectors on disk for fast retrieval.
 
-### Phase 3: Hybrid Retrieval & Generation
-6.  **Advanced Retrieval Strategy:** We do not rely on a single search method. We use an **Ensemble** approach:
-    * **Multi-Query Retriever:** Uses an LLM to generate variations of the user's question (handling ambiguity/slang).
-    * **BM25 Retriever:** Uses keyword matching to find exact terms (handling course codes and specific fee amounts).
-    * *Why?* Vector search often misses exact numbers, while keyword search misses context. Combining them (Hybrid Search) gives the highest accuracy.
-7.  **Generation:**
-    * The retrieved context is passed to Qwen 2.5 7B to generate a precise answer using Chain-of-Thought prompting.
+### Phase 3: Hybrid Retrieval & Generation (Today's Work)
+6.  **Hybrid Search (Ensemble Retriever):**
+    * **Mechanism:** We utilize the `EnsembleRetriever` class to combine results from two distinct search algorithms with a **50/50 weighting (0.5/0.5)**.
+    * **Component A (Sparse):** `BM25Retriever` performs keyword-based search. It creates a sparse index to catch exact matches like course codes ("CS101") or specific fee amounts ("17500").
+    * **Component B (Dense):** `MultiQueryRetriever` uses the LLM to generate 3 variations of the user's prompt, effectively "triangulating" the semantic meaning in vector space.
+    * *Why Ensemble?* It solves the "Zero-Recall" problem. If a user asks for a specific ID number, Vector search might fail (missing the exact number), but BM25 will catch it. If a user asks a vague conceptual question, BM25 fails, but Vector search succeeds. The Ensemble provides the best of both worlds.
+
+7.  **Grounded Generation:**
+    * **LLM Engine:** The retrieved context is passed to **Qwen 2.5-7B-Instruct** (via HuggingFace Inference API).
+    * **Configuration:** We use `Temperature=0.2` to enforce deterministic, factual responses and minimize creative hallucinations.
+    * **Strict Prompting:** The system uses a rigid `ChatPromptTemplate`. It enforces a **"Context-Only" rule**: if the answer is not found in the retrieved chunks, the model is explicitly instructed to refuse rather than invent facts.
 
 ---
 
