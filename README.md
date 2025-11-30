@@ -76,7 +76,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Ingest & Embed (one time setup)
-# Run these scripts to parse the PDFs and build the vector database.
+#### Run these scripts to parse the PDFs and build the vector database.
 ```bash
 python src/ingest.py
 python src/chunk.py
@@ -84,7 +84,7 @@ python src/embedding_store.py
 ```
 
 ### 3. Run the RAG pipeline
-# Ask questions directly in the terminal using the new retrieval engine.
+#### Ask questions directly in the terminal using the new retrieval engine.
 ```bash
 python src/rag.py
 ```
