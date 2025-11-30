@@ -26,7 +26,7 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
     * **Embedding Model:** `BAAI/bge-small-en-v1.5` (HuggingFace). Selected for its 512-token window which fits our larger chunks better than standard MiniLM models.
     * **Database:** **ChromaDB** (Local). Stores the vectors on disk for fast retrieval.
 
-### Phase 3: Hybrid Retrieval & Generation (Today's Work)
+### Phase 3: Hybrid Retrieval & Generation
 6.  **Hybrid Search (Ensemble Retriever):**
     * **Mechanism:** We utilize the `EnsembleRetriever` class to combine results from two distinct search algorithms with a **50/50 weighting (0.5/0.5)**.
     * **Component A (Sparse):** `BM25Retriever` performs keyword-based search. It creates a sparse index to catch exact matches like course codes ("CS101") or specific fee amounts ("17500").
@@ -34,7 +34,7 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
     * *Why Ensemble?* It solves the "Zero-Recall" problem. If a user asks for a specific ID number, Vector search might fail (missing the exact number), but BM25 will catch it. If a user asks a vague conceptual question, BM25 fails, but Vector search succeeds. The Ensemble provides the best of both worlds.
 
 7.  **Grounded Generation:**
-    * **LLM Engine:** The retrieved context is passed to **Qwen 2.5-7B-Instruct** (via HuggingFace Inference API).
+    * **LLM Engine:** The retrieved context is passed to `wen/Qwen2.5-7B-Instruct` (via HuggingFace Inference API).
     * **Configuration:** We use `Temperature=0.2` to enforce deterministic, factual responses and minimize creative hallucinations.
     * **Strict Prompting:** The system uses a rigid `ChatPromptTemplate`. It enforces a **"Context-Only" rule**: if the answer is not found in the retrieved chunks, the model is explicitly instructed to refuse rather than invent facts.
 
