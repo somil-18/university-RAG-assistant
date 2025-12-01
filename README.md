@@ -106,13 +106,12 @@ python -m src.embedding_score
 ```bash
 python src/rag.py
 
-https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
-
-
 ```
 
 ### 4. Launch the Web Interface
 #### Starts the Streamlit server and opens the interactive chat in your default browser.
 ```bash
 streamlit run app.py
-
+```
+---
+https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
