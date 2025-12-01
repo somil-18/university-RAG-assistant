@@ -60,7 +60,6 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 
 ```bash
 .
-├── assets/                     # 
 ├── data/                       # Raw PDF files
 ├── src/
 │   ├── ingest.py               # Step 1: Parse PDFs -> JSON
