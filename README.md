@@ -60,6 +60,7 @@ The pipeline has moved beyond simple ingestion. It now includes a robust **"Doub
 
 ```bash
 .
+├── assets/                     # 
 ├── data/                       # Raw PDF files
 ├── src/
 │   ├── ingest.py               # Step 1: Parse PDFs -> JSON
@@ -104,6 +105,10 @@ python -m src.embedding_score
 #### Ask questions directly in the terminal using the new retrieval engine.
 ```bash
 python src/rag.py
+
+https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
+
+
 ```
 
 ### 4. Launch the Web Interface
