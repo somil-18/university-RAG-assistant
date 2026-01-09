@@ -1,61 +1,86 @@
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
-
+from langchain_classic.text_splitter import (
+    RecursiveCharacterTextSplitter,
+    MarkdownHeaderTextSplitter
+)
 import json
 
+
 def get_final_chunks():
-    # load data from json
-    with open('parsed_data.json', encoding='utf-8') as f:
+    with open("parsed_data.json", encoding="utf-8") as f:
         data = json.load(f)
 
-    # convert the json into LangChain's Document object
-    raw_lc_docs = [Document(page_content=d['text'], metadata=d['metadata']) for d in data]
+    text_docs = []
+    table_docs = []
 
-    print(f'loaded {len(raw_lc_docs)}')
+    # create Document objects
+    for d in data["texts"]:
+        text_docs.append(
+            Document(
+                page_content=d["content"],
+                metadata={"source": d["source"], "type": "text"}
+            )
+        )
 
-    # 1. markdown splitting based on headers
+    for d in data["tables"]:
+        table_docs.append(
+            Document(
+                page_content=d["content"],
+                metadata={"source": d["source"], "type": "table"}
+            )
+        )
 
-    # define the headers to split on
+    print(f"Loaded {len(text_docs)} text docs")
+    print(f"Loaded {len(table_docs)} table docs")
+
+    # Split ONLY TEXT docs
     headers_to_split_on = [
-        ('#', 'Header1'),
-        ('##', 'Header2'),
-        ('###', 'Header3')
+        ("#", "Header1"),
+        ("##", "Header2"),
+        ("###", "Header3"),
     ]
 
-    markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
-
-    # list to hold the chunks
-    headers_split = []
-
-    print('1. Splitting by headers: ')
-    for dd in raw_lc_docs:
-        splits = markdown_splitter.split_text(dd.page_content) # split the text
-
-        # here we have to put the metadata back on because we only pass the text string in markdown splitter not the metadata
-        for s in splits:
-            s.metadata.update(dd.metadata)
-
-        headers_split.extend(splits)
-
-    print(f'generated {len(headers_split)} sections after split')
-
-    # 2. Splitting based on structure
-    print('2. RecursiveCharacterTextSplitter: ')
-
-    recursive_splitter = RecursiveCharacterTextSplitter(
-        chunk_size = 2000,
-        chunk_overlap = 200
+    markdown_splitter = MarkdownHeaderTextSplitter(
+        headers_to_split_on=headers_to_split_on
     )
 
-    final_chunks = recursive_splitter.split_documents(headers_split)
+    header_splits = []
 
-    print(f"Total Chunks created: {len(final_chunks)}")
-    
+    # mardown text splitter
+    print("Splitting text docs by headers...")
+    for doc in text_docs:
+        splits = markdown_splitter.split_text(doc.page_content)
+
+        # preserving original metadata
+        for s in splits:
+            s.metadata.update(doc.metadata)
+
+        header_splits.extend(splits)
+
+    # recursive character text splitter
+    recursive_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2000,
+        chunk_overlap=200
+    )
+
+    final_text_chunks = recursive_splitter.split_documents(header_splits)
+
+    print(f"Text chunks created: {len(final_text_chunks)}")
+
+
+    # tables are kept as it is
+    print(f"Table chunks kept intact: {len(table_docs)}")
+
+
+    # final chunks
+    final_chunks = final_text_chunks + table_docs
+
+    print(f"TOTAL chunks returned: {len(final_chunks)}")
+
     return final_chunks
 
+
 if __name__ == "__main__":
+    print('this statement will only executed when chunk.py is run directly')
     chunks = get_final_chunks()
-    # verify
-    print(f"Sample Metadata: {chunks[0].metadata}")
-    print(f"Sample Page Content: {chunks[108].page_content}")
 
