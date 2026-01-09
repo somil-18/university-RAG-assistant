@@ -1,24 +1,35 @@
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings 
+from langchain_huggingface import HuggingFaceEmbeddings
+from dotenv import load_dotenv
+
 from src.chunk import get_final_chunks
 
-from dotenv import load_dotenv
+
 load_dotenv()
 
-# embedding model from HF
-embd_model = HuggingFaceEmbeddings(model_name='BAAI/bge-small-en-v1.5')
 
+# embedding model
+embd_model = HuggingFaceEmbeddings(
+    model_name="BAAI/bge-small-en-v1.5"
+)
+
+
+# vector store
 print("Initializing Vector Store...")
 vector_store = Chroma(
     embedding_function=embd_model,
-    persist_directory='./vector_store', 
-    collection_name='collec_1'
+    persist_directory=r'src/vec_store',
+    collection_name="collec_1"
 )
 
+
+# load chunks
 print("Fetching chunks...")
-docs = get_final_chunks() # calling function for chunking
+docs = get_final_chunks()
 
 print(f"Adding {len(docs)} documents to ChromaDB...")
-vector_store.add_documents(documents=docs) # adding vector into the chroma vector store
+vector_store.add_documents(docs)
 
-print("Success! Embeddings stored")
+
+print("Success! Embeddings stored correctly.")
+
