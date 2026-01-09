@@ -1,53 +1,12 @@
 import streamlit as st
 from src.rag import load_models, build_rag_chain
 
-# page configuration
-st.set_page_config(
-    page_title="IITB RAG Chatbot",
-    page_icon="🎓",
-    layout="wide"
-)
-
-# sidebar
-with st.sidebar:
-    st.header("ℹ️ About This Chatbot")
-    
-    st.markdown("""
-    ### 🎓 IIT Bombay RAG Chatbot
-    
-    This is a **Retrieval-Augmented Generation (RAG)** chatbot that answers questions based on IIT Bombay documentation.
-    """)
-    
-    st.divider()
-    
-    st.markdown("""
-    ### ⚙️ How It Works
-    - Searches through IIT Bombay documents
-    - Retrieves relevant information
-    - Generates accurate responses
-    """)
-    
-    st.divider()
-    
-    st.markdown("""
-    ### ⚠️ Important Notes
-    - **No Memory**: This chatbot does NOT remember previous conversations
-    - Each question is processed independently
-    - Context is not carried between sessions
-    """)
-    
-    st.divider()
-    
-    st.markdown("""
-    ### 📚 Data Source
-    IIT Bombay Official Documentation
-    """)
-
-# title
+# 1. Setup Page
+st.set_page_config(page_title="IITB RAG")
 st.title("🎓 IIT Bombay Chatbot")
-st.markdown("Ask questions about IIT Bombay policies, programs, and procedures.")
 
-# load models (cached)
+# 2. Load Models 
+# this tells Streamlit: "Run this function once to load the AI, and then keep it in memory. Don't load it again unless the app restarts."
 @st.cache_resource 
 def get_chain():
     embd_model, llm = load_models()
@@ -56,28 +15,26 @@ def get_chain():
 try:
     chain = get_chain()
 except Exception as e:
-    st.error(f"❌ Error loading models: {e}")
+    st.error(f"Error loading models: {e}")
     st.stop()
 
-# initialize chat history
+# 3. Initialize Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# display chat history
+# 4. Display History
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+    st.chat_message(msg["role"]).write(msg["content"])
 
-# handles user's input
-if user_input := st.chat_input("Ask a question about IIT Bombay..."):
-    # display user's message
-    with st.chat_message("user"):
-        st.write(user_input)
+# 5. Handle Input
+if user_input := st.chat_input("Ask a question..."):
+    # Display User Message
+    st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # generate response
+    # Generate Response
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Searching documents..."):
+        with st.spinner("Thinking..."):
             response = chain.invoke(user_input)
             st.write(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
