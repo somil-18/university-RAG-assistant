@@ -26,8 +26,6 @@ This is **not** a toy RAG. The system is built for documents where tables are th
 
 ## 🧠 System Architecture
 
-## 🧠 System Architecture
-
 ### Phase 1: High-Fidelity PDF Ingestion (`ingest.py`)
 
 **PDF Parsing**
@@ -93,8 +91,6 @@ final_chunks = text_chunks + table_docs
 
 1.  512-token embedding window
 2.  Lower semantic drift compared to MiniLM
-
----
 
 ### Phase 4: Hybrid Retrieval + Routing (`rag.py`)
 
