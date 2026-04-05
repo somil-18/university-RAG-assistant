@@ -1,68 +1,61 @@
-from llama_parse import LlamaParse
+from llama_cloud import LlamaCloud
 from dotenv import load_dotenv
-import os, glob, json
+import os, glob
+import logging
 
 
 load_dotenv()
 
 
-# llamaparser
-parser = LlamaParse(
-    api_key=os.getenv("LLAMA_CLOUD_API_KEY"),
-    result_type="markdown",
-    verbose=True
-)
+# basic logger setup
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 
-# path of all PDFs
-pdf_files = glob.glob("data/*.pdf")
-
-
-# structure for JSON
-output = {
-    "texts": [],
-    "tables": []
-}
-
-
-# function to check for tables
-def is_table(text):
-    return text.count("|") > 10
-
-
-'''
-- processing files one by one because
-- when I tried loading all files together earlier, the metadata came out empty  
-- so manually giving the file name in metadata
-'''
-for file_path in pdf_files:
+def parse_pdf(client, file_path):
     file_name = os.path.basename(file_path)
-    print(f"Parsing {file_name}")
+    logger.info(f"Parsing {file_name}")
 
-    docs = parser.load_data(file_path)
+    try:
+        # upload files to LlamaCloud servers
+        with open(file_path, "rb") as f:
+            file_obj = client.files.create(file=f, purpose="parse")
 
-    for doc in docs:
-        content = doc.text.strip()
+        # parser the uploaded files
+        result = client.parsing.parse(
+            file_id=file_obj.id,
+            tier="agentic",
+            version="latest",
+            expand=["markdown"]
+        )
 
-        if not content:
-            continue
+        # join all pages
+        full_markdown = ""
+        for page in result.markdown.pages:
+            full_markdown += page.markdown + "\n\n---\n\n"
 
-        if is_table(content):
-            output["tables"].append({
-                "content": content,
-                "source": file_name
-            })
-        else:
-            output["texts"].append({
-                "content": content,
-                "source": file_name
-            })
+        return file_name, full_markdown
 
-
-# writing JSON
-with open("parsed_data.json", "w", encoding="utf-8") as f:
-    json.dump(output, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to parse {file_name}: {e}")
+        raise
 
 
-print("Done")
+if __name__ == "__main__":
+    # initialize LlamaCloud client
+    client = LlamaCloud(api_key=os.getenv("LLAMA_CLOUD_API_KEY"))
+
+    # grab all files
+    pdf_files = glob.glob("data/*.pdf")
+    all_markdown = ""
+
+    for file_path in pdf_files:
+        file_name, full_markdown = parse_pdf(client, file_path)
+        all_markdown += f"# {file_name}\n\n"
+        all_markdown += full_markdown + "\n\n"
+
+    with open("parsed_data.md", "w", encoding="utf-8") as f:
+        f.write(all_markdown)
+
+    logger.info("Done")
 
