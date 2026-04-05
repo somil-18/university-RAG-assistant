@@ -1,19 +1,14 @@
 langchain
-langchain-core
 langchain-community
-langchain-chroma
-chromadb
+langchain-groq
+langchain-pinecone
+langchain-nvidia-ai-endpoints
 
-langchain-huggingface
-sentence-transformers
-huggingface-hub
-
-langchain-google-genai
+llama_cloud>=2.1
 
 python-dotenv
 
-pypdf
-llama-parse
-rank_bm25
+pinecone-client 
+pinecone-text
 
-streamlit
+logging
