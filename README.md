@@ -126,6 +126,13 @@ Pass 2 — Safety Split (text only):
 
 ---
 
+## 🎥 Demo
+Check out the hybrid search in action
+
+https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
+
+---
+
 ## ⚙️ Setup & Usage
 
 ### 1. Install Dependencies
