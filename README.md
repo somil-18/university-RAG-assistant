@@ -1,196 +1,128 @@
-# 🎓 University RAG: Conversational AI for University Documents
+# 🎓 University RAG: Conversational AI for IIT Documents
 
-This project implements a **retrieval-augmented generation (RAG) system** tailored for university documents containing dense rules and fee tables (fees, academic regulations, hostel policies, etc.).
+This project implements a **retrieval-augmented generation (RAG) system** tailored for IIT university documents containing dense rules and fee tables (fees, academic regulations, hostel policies, etc.).
 
 This system prioritizes:
-1. Table preservation
+1. High-fidelity table preservation (HTML-aware)
 2. Rule-based answer grounding
-3. Hybrid retrieval (semantic + keyword)
+3. Semantic retrieval with reranking
 4. Strict anti-hallucination prompting
-
-This is **not** a toy RAG. The system is built for documents where tables are the main source of truth and calculations should not be altered
 
 ---
 
-## 🚀 Core Capailities
+## 🚀 Core Capabilities
 
-* Parses complex university PDFs into Markdown
-* Separates tables and text at ingestion time
-* Applies structure-aware chunking only where safe
-* Routes queries intelligently (fees vs rules vs text)
-* Uses hybrid retrieval with routing logic
-* Enforces table-first, context-only answers
-* Provides a clean terminal + Streamlit interface
+* Parses complex university PDFs into Markdown using LlamaCloud (agentic tier)
+* Structure-aware chunking — HTML tables are never split
+* Semantic vector retrieval with neural reranking
+* Strict context-only answer generation
+* Clean streaming Streamlit interface
 
 ---
 
 ## 🧠 System Architecture
 
-### Phase 1: High-Fidelity PDF Ingestion (`ingest.py`)
+### Phase 1: High-Fidelity PDF Parsing (`parser.py`)
 
-**PDF Parsing**
-* Uses `LlamaParse` to convert PDFs into Markdown.
-* Tables are preserved using `|`-based Markdown structure.
-
-**Text vs Table Separation**
-* Content is classified using a simple heuristic:
-    ```python
-    text.count("|") > 10
-    ```
-* Output is stored as:
-    * `texts[]`
-    * `tables[]`
-
-**Manual Metadata Preservation**
-* Files are processed one-by-one
-* Source filename is manually injected to avoid metadata loss
-
-**Caching**
-* Parsed output is written to `parsed_data.json`
-* Prevents repeated parsing API calls
+* Uses `LlamaCloud` sync client to convert PDFs into Markdown
+* Parses files one-by-one to avoid metadata loss
+* Each file's content is prefixed with `# filename.pdf` as a top-level header for downstream source tracking
+* All pages joined with `---` separators
+* Output written to `parsed_data.md`
 
 ---
 
-### Phase 2: Structure-Aware Chunking (`chunk.py`)
+### Phase 2: Structure-Aware Chunking & Storage (`chunk_store.py`)
 
 This phase is deliberately asymmetric.
 
-**Text Documents**
-* Text content goes through two-pass chunking:
-    1.  **Pass 1 — Semantic Split**
-        * `MarkdownHeaderTextSplitter`
-        * Splits by: `#`, `##`, `###`
-        * Preserves logical sections (rules, eligibility, procedures)
-    2.  **Pass 2 — Safety Split**
-        * `RecursiveCharacterTextSplitter`
-        * `chunk_size = 2000`
-        * `chunk_overlap = 200`
+**Chunking Strategy**
 
-* This prevents:
-    * Section headers getting detached
-    * Tables being cut mid-structure
+Pass 1 — Semantic Split:
+* `MarkdownHeaderTextSplitter` splits by `#`, `##`, `###`
+* Preserves logical document sections
 
-**Table Documents**
-* **Never chunked**
-* Stored as full, atomic documents
-* Treated as authoritative sources
+Pass 2 — Safety Split (text only):
+* `RecursiveCharacterTextSplitter` with `chunk_size=4000`, `chunk_overlap=200`
+* Only applied to non-table, oversized text chunks
 
-**Final output:**
-```python
-final_chunks = text_chunks + table_docs
-```
+**Table Handling**
+* Tables detected via HTML: `"<table" in text.lower()`
+* Tables are **never split** — stored as atomic documents
+* Oversized tables (>4000 chars) are truncated with a warning log
 
-### Phase 3: Embedding & Storage (`embedding_store.py`)
+**Metadata**
+* All metadata stripped to just `source` (filename) to stay under Pinecone's 40KB per vector limit
 
-* **Embedding Model:** `BAAI/bge-small-en-v1.5`
-* **Vector Store:** ChromaDB (persistent, local)
-* **Stored under:** `./vector_store`
-* **Collection name:** `collec_1`
+**Embedding & Storage**
+* Embedding Model: `nvidia/llama-3.2-nv-embedqa-1b-v2` (2048 dims)
+* `truncate="END"` to safely handle edge cases
+* Vector DB: Pinecone (Dense, `us-east-1`, cosine metric, 2048 dims)
 
-**Large chunk sizes are supported due to:**
+---
 
-1.  512-token embedding window
-2.  Lower semantic drift compared to MiniLM
+### Phase 3: Retrieval (`retriever.py`)
 
-### Phase 4: Hybrid Retrieval + Routing (`rag.py`)
+* Connects to Pinecone vectorstore
+* Fetches top 20 chunks via vector similarity search
+* Filters empty chunks before reranking
+* Truncates chunks >6000 chars before passing to reranker
+* Reranker: `nvidia/llama-3.2-nv-rerankqa-1b-v2` → returns top 5 most relevant chunks
 
-This is where your project becomes non-trivial.
+---
 
-#### 1. Query Classification
+### Phase 4: Answer Generation (`rag.py`)
 
-A lightweight router detects fee-related queries:
+* LLM: `llama-3.3-70b-versatile` via Groq
+* Streams response chunk by chunk
 
-```python
-["fee", "fees", "tuition", "admission", "cost", "payment"]
-```
+**System Prompt Guarantees**
+* Use ONLY provided context
+* If answer not in context → "I don't have that information." and nothing else
+* Table-first answers for structured data
+* Concise, to-the-point responses
 
-## 2. Retrieval Strategies
+---
 
-### Fee Queries
-**BM25 over TABLES only**
+### Phase 5: Streamlit Frontend (`app.py`)
 
-**Guarantees:**
-* Exact numeric matching
-* No semantic distortion
-* No recomputation
+* Streaming responses via `st.write_stream()`
+* Full chat history with `st.session_state`
+* Clean error handling per message
 
-### Non-Fee Queries
-Uses hybrid retrieval:
-* **Dense:** `MultiQueryRetriever` (Generates multiple semantic variants using the LLM)
-* **Sparse:** `BM25Retriever` over text chunks
-
-**Combined using:**
-```python
-weights = [0.6 (dense), 0.4 (sparse)]
-```
-
-This avoids:
-* Missing policy language
-* Over-semanticizing rules
-
-### Phase 5: Rule-Aware Answer Generation
-* **LLM:** Qwen/Qwen2.5-7B-Instruct
-* **Temperature:** 0.2 (low creativity)
-* **Max tokens:** 1024
-
-#### Strict System Prompt Guarantees
-The model is forced to:
-1. Use **ONLY** provided context
-2. Treat tables as authoritative
-3. Quote Grand Total rows verbatim
-4. Never recompute fees
-5. Refuse answers if data is missing
-6. End every response with an official disclaimer
-
-> This dramatically reduces hallucinations — especially for fee queries.
 ---
 
 ## 🛠️ Tech Stack
 
-* **Frontend:** Streamlit
-* **Language:** Python 3.10+
-* **Parsing:** LlamaParse (LlamaIndex)
-* **Orchestration:** LangChain
-* **Retrievers:** `MultiQueryRetriever`, `BM25Retriever`, `EnsembleRetriever`
-* **Embeddings:** HuggingFace (`BAAI/bge-small-en-v1.5`)
-* **LLM:** HuggingFace (`Qwen/Qwen2.5-7B-Instruct`)
-* **Vector DB:** ChromaDB
-* **Utilities:** `python-dotenv`, `rank_bm25`
+| Component | Tool |
+|---|---|
+| Frontend | Streamlit |
+| Language | Python 3.10+ |
+| Parsing | LlamaCloud (agentic tier) |
+| Orchestration | LangChain |
+| Embeddings | NVIDIA AI Endpoints (`llama-3.2-nv-embedqa-1b-v2`) |
+| Reranker | NVIDIA AI Endpoints (`llama-3.2-nv-rerankqa-1b-v2`) |
+| LLM | Groq (`llama-3.3-70b-versatile`) |
+| Vector DB | Pinecone (Dense, 2048 dims) |
+| Utilities | `python-dotenv`, `langchain`, `langchain-pinecone` |
 
 ---
 
 ## 📂 Project Structure
 
-```bash
+```
 .
-├── data/                       # Raw PDF files
+├── data/                   # Raw PDF files
 ├── src/
-│   ├── ingest.py               # Step 1: Parse PDFs -> JSON
-│   ├── chunk.py                # Step 2: JSON -> Document Objects (Double-Pass Logic)
-│   ├── embedding_store.py      # Step 3: Embed Chunks -> ChromaDB
-│   └── rag.py                  # Step 4: Backend Logic (Hybrid Retrieval + LLM Chain)
-├── vectorstore/                # Created automatically (The Local Database)
-├── parsed_data.json            # Cached output (Markdown text + Metadata)
-├── app.py                      # Step 5: Streamlit Frontend UI
-├── requirements.txt            # Dependencies
-├── .env                        # API Keys (Not committed)
+│   ├── parser.py           # Step 1: Parse PDFs → parsed_data.md
+│   ├── chunk_store.py      # Step 2: Chunk + Embed + Upload to Pinecone
+│   ├── retriever.py        # Step 3: Vector search + Reranking
+│   └── rag.py              # Step 4: Prompt + LLM generation (streaming)
+├── parsed_data.md          # Cached parsed output
+├── app.py                  # Streamlit frontend
+├── requirements.txt        # Dependencies
 └── README.md
-```   
----
-
-## 🔄 Future Roadmap
-
-I will keep updating this repository with new features and improvements. Planned updates include:
-- [ ] **Chat Memory:** Enabling the bot to remember previous messages for a natural conversation.
-- [ ] **Easy Deployment:** Making the application simpler to install and run on any computer.
-- [ ] ...and many more!
-
----
-
-## 🎥 Demo
-Check out the hybrid search in action
-
-https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
+```
 
 ---
 
@@ -201,23 +133,26 @@ https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
 pip install -r requirements.txt
 ```
 
-### 2. Ingest & Embed (one time setup)
-#### Run these scripts to parse the PDFs and build the vector database.
-```bash
-python src/ingest.py
-python src/chunk.py
-python -m src.embedding_score
+### 2. Set up `.env`
+```
+LLAMA_CLOUD_API_KEY=...
+NVIDIA_API_KEY=...
+PINECONE_API_KEY=...
+GROQ_API_KEY=...
 ```
 
-### 3. Run the RAG pipeline
-#### Ask questions directly in the terminal using the new retrieval engine.
+### 3. Parse PDFs (one-time)
 ```bash
-python src/rag.py
-
+python src/parser.py
 ```
 
-### 4. Launch the Web Interface
-#### Starts the Streamlit server and opens the interactive chat in your default browser.
+### 4. Chunk & Upload to Pinecone (one-time)
+```bash
+python src/chunk_store.py
+```
+
+### 5. Launch the Web Interface
 ```bash
 streamlit run app.py
 ```
+
