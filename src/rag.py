@@ -54,9 +54,3 @@ Answer:
         raise
 
 
-if __name__ == '__main__':
-    for chunk in generate_response(
-        query="Tell me 2 most imp. hostel rules"
-    ):
-        print(chunk, end="", flush=True)
-
