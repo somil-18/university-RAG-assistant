@@ -140,25 +140,17 @@ https://github.com/user-attachments/assets/aa66ae53-359f-4d66-9bff-8952d61e4695
 pip install -r requirements.txt
 ```
 
-### 2. Set up `.env`
-```
-LLAMA_CLOUD_API_KEY=...
-NVIDIA_API_KEY=...
-PINECONE_API_KEY=...
-GROQ_API_KEY=...
-```
-
-### 3. Parse PDFs (one-time)
+### 2. Parse PDFs (one-time)
 ```bash
 python src/parser.py
 ```
 
-### 4. Chunk & Upload to Pinecone (one-time)
+### 3. Chunk & Upload to Pinecone (one-time)
 ```bash
 python src/chunk_store.py
 ```
 
-### 5. Launch the Web Interface
+### 4. Launch the Web Interface
 ```bash
 streamlit run app.py
 ```
